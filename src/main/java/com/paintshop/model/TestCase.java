@@ -10,15 +10,14 @@ public class TestCase {
     private List<Product> products = new ArrayList<>();
     private List<Customer> customers = new ArrayList<>();
 
-    // Prevent external creation
     private TestCase() {
-
+        // Prevent external creation
     }
 
     public int linesConsumed() {
-        // One line for number of colors
-        // + One line for number of customers
-        // + n lines for 'n' customers
+        // One line for number of colors +
+        // One line for number of customers +
+        // n lines for 'n' customers
         return 1 + 1 + customers.size();
     }
 
