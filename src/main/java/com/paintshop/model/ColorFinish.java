@@ -4,8 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum ColorFinish {
-    MATTE(0),
-    GLOSSY(1);
+    GLOSSY(0),
+    MATTE(1);
 
     private final int code;
 
