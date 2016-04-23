@@ -24,13 +24,8 @@ public class Solver {
 
     private Map<Integer, List<CustomerWish>> solve(TestCase testCase) {
         List<Customer> customers = new ArrayList<>(testCase.getCustomers());
-        // Sort by customers with least preferences
-        customers.sort((a, b) -> Integer.valueOf(a.getWishes().size()).compareTo(Integer.valueOf(b.getWishes().size())));
-        // Wishes with least cost come first
-        customers.forEach(c -> c.getWishes()
-                .sort((a, b) -> Integer.valueOf(a.getColorFinish().getCode())
-                        .compareTo(Integer.valueOf(b.getColorFinish().getCode()))));
-
+        // Sort for optimal computing
+        sortCustomersAndWishes(customers);
         Map<Integer, List<CustomerWish>> solutions = new HashMap<>();
         List<CustomerWish> tempGrants = new ArrayList<>();
         int solutionIndex = 0;
@@ -54,18 +49,28 @@ public class Solver {
                      *      Reduce the value of index by 1
                      */
                     if (isSolved(customers)) {
-                        System.out.println("Founded solution number " + solutionIndex + 1);
-                        solutions.put(solutionIndex, new ArrayList<>(tempGrants));
-                        solutionIndex++;
+                        solutions.put(solutionIndex++, new ArrayList<>(tempGrants));
+                        System.out.println("Found solution number " + solutionIndex + 1);
+
                         if (i > 0) {
-                            // TODO : Fix logic here - When going up, don't remove a grant which was granted for an earlier customer
+                            // Remove the recently added wish from the list
                             removeFromGrants(wish, tempGrants);
-                            for (int j = i; j < customers.size(); j++) {
+                            CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
+                            int nextIndex = getFirstCustomerIndexWithWish(lastGranted, customers);
+                            // Reset all customer wishes from next index to last
+                            for (int j = nextIndex + 1; j < customers.size(); j++) {
+                                // remove grants and clear visits completely
+                                customer.getGrantedWish().ifPresent(w -> {
+                                    removeFromGrants(w, tempGrants);
+                                });
                                 customer.clearVisitsAndGrants();
                             }
-                            customers.get(i - 1).getGrantedWish().ifPresent(CustomerWish::clearGrant);
-                            // Reduce index to move up the grid
-                            i--;
+                            customers.get(nextIndex).getGrantedWish().ifPresent(w -> {
+                                // Mark as visited but un-granted
+                                removeFromGrants(w, tempGrants);
+                                w.clearGrant();
+                            });
+                            i = nextIndex;
                             break;
                         } else {
                             // TODO: re-check this
@@ -102,6 +107,19 @@ public class Solver {
 
         //TODO: Execution should not come here - Add assertion
         return solutions;
+    }
+
+    private int getFirstCustomerIndexWithWish(CustomerWish wish, List<Customer> customers) {
+        return 0;
+    }
+
+    private void sortCustomersAndWishes(List<Customer> customers) {
+        // Sort by customers with least preferences
+        customers.sort((a, b) -> Integer.valueOf(a.getWishes().size()).compareTo(Integer.valueOf(b.getWishes().size())));
+        // Wishes with least cost come first
+        customers.forEach(c -> c.getWishes()
+                .sort((a, b) -> Integer.valueOf(a.getColorFinish().getCode())
+                        .compareTo(Integer.valueOf(b.getColorFinish().getCode()))));
     }
 
     private boolean isSolved(List<Customer> customers) {
