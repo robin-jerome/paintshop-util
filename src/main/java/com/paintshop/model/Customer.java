@@ -40,4 +40,11 @@ public class Customer {
     public boolean hasAGrantedWish() {
         return getGrantedWish().isPresent();
     }
+
+    public void clearVisitsAndGrants() {
+        wishes.forEach(c -> {
+            c.unVisit();
+            c.clearGrant();
+        });
+    }
 }

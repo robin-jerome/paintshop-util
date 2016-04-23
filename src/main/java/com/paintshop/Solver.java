@@ -33,20 +33,17 @@ public class Solver {
             // Iterate through unvisited wishes of a customer
             for (CustomerWish wish : customer.getUnVisitedWishes()) { // Begin FOR LOOP for customer wishes
                 if (isGrantable(wish, tempGrants)) {
+                    System.out.println("Granting a wish");
                     wish.visitAndGrant();
                     wishGranted = true;
                     tempGrants.add(wish);
                     /**
                      * If a complete solution is formed
                      *      Add solution to the map of solutions
-                     *
-                     *      Reduce the value of index by 1
-                     *      Un-grant the wish of the current customer + remove entry from the set
-                     *      Mark all entries of the current customer as unvisited
+                     *      Remove the granted wish of the current customer from the set
                      *      Mark the last granted wish of the previous customer as un-granted but visited and continue the loop
-                     *
-                     *
-                     *      Mark all the wishes or customers after current one as un-visited and un-granted
+                     *      Mark all the wishes or customers from current one to the last as un-visited and un-granted
+                     *      Reduce the value of index by 1
                      */
                     if (isSolved(customers)) {
                         System.out.printf("Houston we have landed on a solution");
@@ -56,16 +53,18 @@ public class Solver {
                             System.out.println("We are going back up the grid to find more solution");
                             // TODO : Fix logic here - When going up, don't remove a grant which was granted for an earlier customer
                             clearGrantAndRemoveFromGrants(wish, tempGrants);
-                            clearVisitsOfCustomerWishes(customer);
+                            for (int j = i; j < customers.size(); j++) {
+                                customer.clearVisitsAndGrants();
+                            }
+                            // Reduce index to move up the grid
                             i--;
                         } else {
-
-
+                            // TODO: re-check this
+                            return solutions;
                         }
-                    } else {
-
                     }
                 } else {
+                    System.out.println("Visited a wish");
                     wish.visit();
                 }
             } // End FOR LOOP for customer wishes
@@ -76,7 +75,9 @@ public class Solver {
                     // Not reached the top of the grid yet
                     CustomerWish wish = customer.getGrantedWish().get();
                     clearGrantAndRemoveFromGrants(wish, tempGrants);
-                    clearVisitsOfCustomerWishes(customer);
+                    for (int j = i; j < customers.size(); j++) {
+                        customer.clearVisitsAndGrants();
+                    }
                     // Mark the last granted wish of the previous customer as un-granted but visited and continue the loop
                     // TODO : Fix logic here - When going up, don't remove a grant which was granted for an earlier customer as well as the current customer
                     Customer previous = customers.get(i - 1);
@@ -91,6 +92,7 @@ public class Solver {
         } // End FOR LOOP for customer wishes
 
         //TODO: Execution should not come here - Add assertion
+        System.out.println("In here");
         return solutions;
     }
 
