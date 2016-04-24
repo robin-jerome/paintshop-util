@@ -47,6 +47,10 @@ public class CustomerWish {
         this.granted = true;
     }
 
+    public boolean isSame(CustomerWish cw) {
+        return Integer.valueOf(cw.getColor()).equals(getColor()) && cw.getColorFinish().equals(getColorFinish());
+    }
+
     public void visit() {
         this.visited = true;
     }

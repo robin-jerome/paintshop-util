@@ -15,4 +15,23 @@ public class Product {
     public Product(int color) {
         this.color = color;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Product product = (Product) o;
+
+        if (color != product.color) return false;
+        return colorFinish == product.colorFinish;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = color;
+        result = 31 * result + colorFinish.hashCode();
+        return result;
+    }
 }

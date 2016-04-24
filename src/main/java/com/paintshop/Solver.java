@@ -3,23 +3,68 @@ package com.paintshop;
 import com.paintshop.file.InputReader;
 import com.paintshop.model.Customer;
 import com.paintshop.model.CustomerWish;
+import com.paintshop.model.Product;
 import com.paintshop.model.TestCase;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Solver {
 
     public static void main(String[] args) {
         try {
             Solver solver = new Solver();
-            new InputReader("input.txt").getTestCases().forEach(t -> solver.solve(t));
+            List<TestCase> testCases = new InputReader("input.txt").getTestCases();
+            for (int i = 0, j = 1; i < testCases.size(); i++, j++) {
+                TestCase tc = testCases.get(i);
+                Map<Integer, List<CustomerWish>> solutions  = solver.solve(tc);
+                System.out.println("Test case has " + solutions.keySet().size() + " solution(s)");
+                String result = "Case #" + j + ": ";
+                if (solutions.isEmpty()) {
+                    // Push output to file
+                    result += "IMPOSSIBLE";
+                } else {
+                    Set<Product> catalog = solver.makeProductCatalog(solutions, tc.getProducts());
+                    result += catalog.stream().map(p -> "" + p.getColorFinish().getCode()).collect(Collectors.joining(" "));
+                }
+                // Push result to output file
+                System.out.println(result);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private Set<Product> makeProductCatalog(Map<Integer, List<CustomerWish>> solutions, List<Product> products) {
+        // TreeSet to make colors ordered by their color code
+        Set<Product> catalog = new TreeSet<>((o1, o2) -> Integer.valueOf(o1.getColor()).compareTo(Integer.valueOf(o2.getColor())));
+        catalog.addAll(findCheapestSolution(solutions));
+        // Add the colors that customers didn't request for also to the catalog
+        products.forEach(p -> {
+            boolean isColorPresent = catalog.stream().anyMatch(c -> p.getColor() == c.getColor());
+            if (!isColorPresent) {
+                catalog.add(p);
+            }
+        });
+        return catalog;
+    }
+
+    // TODO: Fix implementation
+    private Set<Product> findCheapestSolution(Map<Integer, List<CustomerWish>> solutions) {
+        return solutions.values().stream()
+                .map(x -> new HashSet<>(wishesToProducts(x)))
+                .sorted((a, b) -> costOfSolution(a).compareTo(costOfSolution(b)))
+                .findFirst().get();
+    }
+
+    private List<Product> wishesToProducts(List<CustomerWish> customerWishes) {
+        return customerWishes.stream().map(CustomerWish::getProduct).collect(Collectors.toList());
+    }
+
+    private Integer costOfSolution(Collection<Product> products) {
+        return products.stream().map(p -> p.getColorFinish().getCode()).
+                reduce(0, Integer::sum);
     }
 
     private Map<Integer, List<CustomerWish>> solve(TestCase testCase) {
@@ -40,40 +85,18 @@ public class Solver {
                     wishGranted = true;
                     tempGrants.add(wish);
                     System.out.println("Granting wish for customer " + i);
-                    /**
-                     * If a complete solution is formed
-                     *      Add solution to the map of solutions
-                     *      Remove the granted wish of the current customer from the set
-                     *      Mark the last granted wish of the previous customer as un-granted but visited and continue the loop
-                     *      Mark all the wishes or customers from current one to the last as un-visited and un-granted
-                     *      Reduce the value of index by 1
-                     */
                     if (isSolved(customers)) {
                         solutions.put(solutionIndex++, new ArrayList<>(tempGrants));
-                        System.out.println("Found solution number " + solutionIndex + 1);
-
+                        System.out.println("Found solution number " + solutionIndex);
                         if (i > 0) {
                             // Remove the recently added wish from the list
                             removeFromGrants(wish, tempGrants);
-                            CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
-                            int nextIndex = getFirstCustomerIndexWithWish(lastGranted, customers);
-                            // Reset all customer wishes from next index to last
-                            for (int j = nextIndex + 1; j < customers.size(); j++) {
-                                // remove grants and clear visits completely
-                                customer.getGrantedWish().ifPresent(w -> {
-                                    removeFromGrants(w, tempGrants);
-                                });
-                                customer.clearVisitsAndGrants();
-                            }
-                            customers.get(nextIndex).getGrantedWish().ifPresent(w -> {
-                                // Mark as visited but un-granted
-                                removeFromGrants(w, tempGrants);
-                                w.clearGrant();
-                            });
+                            int nextIndex = performResetActions(customers, tempGrants, customer);
                             i = nextIndex;
                             break;
                         } else {
                             // TODO: re-check this
+                            System.out.println("Vulnerability point 1");
                             return solutions;
                         }
                     }
@@ -85,19 +108,8 @@ public class Solver {
             if (!wishGranted) {
                 // Reset previous successful wish grant and move back to that customer's wishes
                 if (i > 0) {
-                    System.out.println("Reached here --- do something about it");
-//                    // Not reached the top of the grid yet
-//                    CustomerWish wish = customer.getGrantedWish().get();
-//                    removeFromGrants(wish, tempGrants);
-//                    for (int j = i; j < customers.size(); j++) {
-//                        customer.clearVisitsAndGrants();
-//                    }
-//                    // Mark the last granted wish of the previous customer as un-granted but visited and continue the loop
-//                    // TODO : Fix logic here - When going up, don't remove a grant which was granted for an earlier customer as well as the current customer
-//                    Customer previous = customers.get(i - 1);
-//                    previous.getGrantedWish().ifPresent(CustomerWish::clearGrant);
-//                    System.out.println("We are going back up the grid");
-//                    // i--;
+                    int nextIndex = performResetActions(customers, tempGrants, customer);
+                    i = nextIndex;
                 } else {
                     // Reached top of the grid - return the solutions map
                     return solutions;
@@ -109,7 +121,32 @@ public class Solver {
         return solutions;
     }
 
-    private int getFirstCustomerIndexWithWish(CustomerWish wish, List<Customer> customers) {
+    private int performResetActions(List<Customer> customers, List<CustomerWish> tempGrants, Customer customer) {
+        int nextIndex = getFirstCustomerIndexWithLastGrantedWish(tempGrants, customers);
+        // Reset all customer wishes from next index to last
+        for (int j = nextIndex + 1; j < customers.size(); j++) {
+            // remove grants and clear visits completely
+            customer.getGrantedWish().ifPresent(w -> {
+                removeFromGrants(w, tempGrants);
+            });
+            customer.clearVisitsAndGrants();
+        }
+        customers.get(nextIndex).getGrantedWish().ifPresent(w -> {
+            // Mark as visited but un-granted
+            removeFromGrants(w, tempGrants);
+            w.clearGrant();
+        });
+        return nextIndex;
+    }
+
+    private int getFirstCustomerIndexWithLastGrantedWish(List<CustomerWish> tempGrants, List<Customer> customers) {
+        CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
+        for (int i = 0; i < customers.size(); i++) {
+            boolean hasSameWish = customers.get(i).getGrantedWish().filter(w -> w.isSame(lastGranted)).isPresent();
+            if (hasSameWish) {
+                return i;
+            }
+        }
         return 0;
     }
 
@@ -124,10 +161,6 @@ public class Solver {
 
     private boolean isSolved(List<Customer> customers) {
         return customers.stream().allMatch(c -> c.hasAGrantedWish());
-    }
-
-    private void clearVisitsOfCustomerWishes(Customer customer) {
-        customer.getWishes().forEach(CustomerWish::unVisit);
     }
 
     private void removeFromGrants(CustomerWish wish, List<CustomerWish> tempGrant) {
