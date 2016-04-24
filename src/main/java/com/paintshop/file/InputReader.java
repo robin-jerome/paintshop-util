@@ -57,7 +57,7 @@ public class InputReader {
         return TestCase.makeWithProductCountAndCustomers(productCount, customers);
     }
 
-    private Customer toCustomer(String line) {
+    protected Customer toCustomer(String line) {
         List<Integer> numbers = Arrays.asList(line.split(" ")).stream()
                 .map(Integer::valueOf)
                 .collect(Collectors.toList());
