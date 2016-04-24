@@ -16,9 +16,9 @@ public enum ColorFinish {
     public static ColorFinish of(int value) {
         switch (value) {
             case 0:
-                return MATTE;
-            case 1:
                 return GLOSSY;
+            case 1:
+                return MATTE;
             default:
                 throw new IllegalArgumentException("Invalid value of Color Finish");
         }

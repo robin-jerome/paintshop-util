@@ -7,6 +7,8 @@ import com.paintshop.model.Product;
 import com.paintshop.model.TestCase;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,6 +17,7 @@ public class Solver {
     public static void main(String[] args) {
         try {
             Solver solver = new Solver();
+            List<String> resultLines = new ArrayList<>();
             List<TestCase> testCases = new InputReader("input.txt").getTestCases();
             for (int i = 0, j = 1; i < testCases.size(); i++, j++) {
                 TestCase tc = testCases.get(i);
@@ -28,9 +31,9 @@ public class Solver {
                     Set<Product> catalog = solver.makeProductCatalog(solutions, tc.getProducts());
                     result += catalog.stream().map(p -> "" + p.getColorFinish().getCode()).collect(Collectors.joining(" "));
                 }
-                // Push result to output file
-                System.out.println(result);
+                resultLines.add(result);
             }
+            Files.write(Paths.get("output.txt"), resultLines);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -50,7 +53,6 @@ public class Solver {
         return catalog;
     }
 
-    // TODO: Fix implementation
     private Set<Product> findCheapestSolution(Map<Integer, List<CustomerWish>> solutions) {
         return solutions.values().stream()
                 .map(x -> new HashSet<>(wishesToProducts(x)))
@@ -95,7 +97,6 @@ public class Solver {
                             i = nextIndex;
                             break;
                         } else {
-                            // TODO: re-check this
                             System.out.println("Vulnerability point 1");
                             return solutions;
                         }
@@ -116,8 +117,6 @@ public class Solver {
                 }
             }
         } // End FOR LOOP for customer wishes
-
-        //TODO: Execution should not come here - Add assertion
         return solutions;
     }
 
