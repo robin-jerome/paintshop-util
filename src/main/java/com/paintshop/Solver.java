@@ -20,6 +20,7 @@ public class Solver {
             List<String> resultLines = new ArrayList<>();
             List<TestCase> testCases = new InputReader("input.txt").getTestCases();
             for (int i = 0, j = 1; i < testCases.size(); i++, j++) {
+                System.out.println("Solving testcase " + j);
                 TestCase tc = testCases.get(i);
                 Map<Integer, List<CustomerWish>> solutions  = solver.solve(tc);
                 System.out.println("Test case has " + solutions.keySet().size() + " solution(s)");
@@ -86,7 +87,7 @@ public class Solver {
                     wish.visitAndGrant();
                     wishGranted = true;
                     tempGrants.add(wish);
-                    System.out.println("Granting wish for customer " + i);
+                    // System.out.println("Granting wish " + wish.getColor() + " " + wish.getColorFinish().getCode());
                     if (isSolved(customers)) {
                         solutions.put(solutionIndex++, new ArrayList<>(tempGrants));
                         System.out.println("Found solution number " + solutionIndex);
@@ -94,12 +95,16 @@ public class Solver {
                             // Remove the recently added wish from the list
                             removeFromGrants(wish, tempGrants);
                             int nextIndex = performResetActions(customers, tempGrants, customer);
-                            i = nextIndex;
+                            System.out.println("Moving to index " + nextIndex);
+                            i = nextIndex - 1;
                             break;
                         } else {
                             System.out.println("Vulnerability point 1");
                             return solutions;
                         }
+                    } else {
+                        // Move to next customer
+                        break;
                     }
                 } else {
                     wish.visit();
@@ -110,7 +115,8 @@ public class Solver {
                 // Reset previous successful wish grant and move back to that customer's wishes
                 if (i > 0) {
                     int nextIndex = performResetActions(customers, tempGrants, customer);
-                    i = nextIndex;
+                    System.out.println("Moving to index " + nextIndex);
+                    i = nextIndex - 1;
                 } else {
                     // Reached top of the grid - return the solutions map
                     return solutions;
@@ -139,11 +145,13 @@ public class Solver {
     }
 
     private int getFirstCustomerIndexWithLastGrantedWish(List<CustomerWish> tempGrants, List<Customer> customers) {
-        CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
-        for (int i = 0; i < customers.size(); i++) {
-            boolean hasSameWish = customers.get(i).getGrantedWish().filter(w -> w.isSame(lastGranted)).isPresent();
-            if (hasSameWish) {
-                return i;
+        if (tempGrants.size() > 0) {
+            CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
+            for (int i = 0; i < customers.size(); i++) {
+                boolean hasSameWish = customers.get(i).getGrantedWish().filter(w -> w.isSame(lastGranted)).isPresent();
+                if (hasSameWish) {
+                    return i;
+                }
             }
         }
         return 0;
@@ -151,7 +159,13 @@ public class Solver {
 
     private void sortCustomersAndWishes(List<Customer> customers) {
         // Sort by customers with least preferences
-        customers.sort((a, b) -> Integer.valueOf(a.getWishes().size()).compareTo(Integer.valueOf(b.getWishes().size())));
+        customers.sort((a, b) -> {
+            if (a.getWishes().size() != b.getWishes().size()) {
+                return Integer.valueOf(a.getWishes().size()).compareTo(Integer.valueOf(b.getWishes().size()));
+            } else {
+                return costOfSolution(wishesToProducts(a.getWishes())).compareTo(costOfSolution(wishesToProducts(b.getWishes())));
+            }
+        });
         // Wishes with least cost come first
         customers.forEach(c -> c.getWishes()
                 .sort((a, b) -> Integer.valueOf(a.getColorFinish().getCode())
@@ -171,6 +185,4 @@ public class Solver {
                 .noneMatch(w -> w.getColor() == wish.getColor() &&
                         !w.getColorFinish().equals(wish.getColorFinish()));
     }
-
-
 }
