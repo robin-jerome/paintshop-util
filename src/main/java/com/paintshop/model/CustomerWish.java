@@ -48,7 +48,7 @@ public class CustomerWish {
     }
 
     public boolean isSame(CustomerWish cw) {
-        return Integer.valueOf(cw.getColor()).equals(getColor()) && cw.getColorFinish().equals(getColorFinish());
+        return cw.getProduct().equals(product);
     }
 
     public void visit() {
