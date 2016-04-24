@@ -79,27 +79,25 @@ public class Solver {
         int solutionIndex = 0;
         // Iterate through all customers
         for (int i = 0; i < customers.size(); i++) { // Begin FOR LOOP for customers
-            Customer customer = customers.get(i);
             boolean wishGranted = false;
             // Iterate through unvisited wishes of a customer
-            for (CustomerWish wish : customer.getUnVisitedWishes()) { // Begin FOR LOOP for customer wishes
+            for (CustomerWish wish : customers.get(i).getUnVisitedWishes()) { // Begin FOR LOOP for customer wishes
                 if (isGrantable(wish, tempGrants)) {
                     wish.visitAndGrant();
                     wishGranted = true;
                     tempGrants.add(wish);
-                    // System.out.println("Granting wish " + wish.getColor() + " " + wish.getColorFinish().getCode());
+                    System.out.println("Granting wish " + wish.productAsString() + " for customer " + i);
                     if (isSolved(customers)) {
                         solutions.put(solutionIndex++, new ArrayList<>(tempGrants));
                         System.out.println("Found solution number " + solutionIndex);
                         if (i > 0) {
                             // Remove the recently added wish from the list
                             removeFromGrants(wish, tempGrants);
-                            int nextIndex = performResetActions(customers, tempGrants, customer);
-                            System.out.println("Moving to index " + nextIndex);
+                            int nextIndex = performResetActionsAndGetNextIndex(customers, tempGrants);
+                            // System.out.println("Moving to index " + nextIndex);
                             i = nextIndex - 1;
                             break;
                         } else {
-                            System.out.println("Vulnerability point 1");
                             return solutions;
                         }
                     } else {
@@ -114,8 +112,8 @@ public class Solver {
             if (!wishGranted) {
                 // Reset previous successful wish grant and move back to that customer's wishes
                 if (i > 0) {
-                    int nextIndex = performResetActions(customers, tempGrants, customer);
-                    System.out.println("Moving to index " + nextIndex);
+                    int nextIndex = performResetActionsAndGetNextIndex(customers, tempGrants);
+                    // System.out.println("Moving to index " + nextIndex);
                     i = nextIndex - 1;
                 } else {
                     // Reached top of the grid - return the solutions map
@@ -126,20 +124,22 @@ public class Solver {
         return solutions;
     }
 
-    private int performResetActions(List<Customer> customers, List<CustomerWish> tempGrants, Customer customer) {
+    private int performResetActionsAndGetNextIndex(List<Customer> customers, List<CustomerWish> tempGrants) {
         int nextIndex = getFirstCustomerIndexWithLastGrantedWish(tempGrants, customers);
         // Reset all customer wishes from next index to last
+        // System.out.println("Clearing visits and grants of customers from index " + (nextIndex + 1) + " onwards");
         for (int j = nextIndex + 1; j < customers.size(); j++) {
             // remove grants and clear visits completely
-            customer.getGrantedWish().ifPresent(w -> {
+            customers.get(j).getGrantedWish().ifPresent(w -> {
                 removeFromGrants(w, tempGrants);
             });
-            customer.clearVisitsAndGrants();
+            customers.get(j).clearVisitsAndGrants();
         }
         customers.get(nextIndex).getGrantedWish().ifPresent(w -> {
             // Mark as visited but un-granted
             removeFromGrants(w, tempGrants);
             w.clearGrant();
+            System.out.println("Un grant wish " + w.productAsString() + " for customer " + nextIndex);
         });
         return nextIndex;
     }
@@ -148,11 +148,13 @@ public class Solver {
         if (tempGrants.size() > 0) {
             CustomerWish lastGranted = tempGrants.get(tempGrants.size() - 1);
             for (int i = 0; i < customers.size(); i++) {
-                boolean hasSameWish = customers.get(i).getGrantedWish().filter(w -> w.isSame(lastGranted)).isPresent();
-                if (hasSameWish) {
+                Optional<CustomerWish> cwOpt = customers.get(i).getGrantedWish();
+                if (cwOpt.isPresent() && cwOpt.get().isSame(lastGranted)) {
                     return i;
                 }
             }
+        } else {
+            return 0;
         }
         return 0;
     }
@@ -168,16 +170,22 @@ public class Solver {
         });
         // Wishes with least cost come first
         customers.forEach(c -> c.getWishes()
-                .sort((a, b) -> Integer.valueOf(a.getColorFinish().getCode())
-                        .compareTo(Integer.valueOf(b.getColorFinish().getCode()))));
+                .sort((a, b) ->  {
+                    if (a.getColorFinish().equals(b.getColorFinish())) {
+                        return Integer.valueOf(a.getColor()).compareTo(Integer.valueOf(b.getColor()));
+                    } else {
+                        return Integer.valueOf(a.getColorFinish().getCode())
+                                .compareTo(Integer.valueOf(b.getColorFinish().getCode()));
+                    }
+                }));
     }
 
     private boolean isSolved(List<Customer> customers) {
         return customers.stream().allMatch(c -> c.hasAGrantedWish());
     }
 
-    private void removeFromGrants(CustomerWish wish, List<CustomerWish> tempGrant) {
-        tempGrant.removeIf(w -> w.getColor() == wish.getColor() && w.getColorFinish().equals(wish.getColorFinish()));
+    private void removeFromGrants(CustomerWish wish, List<CustomerWish> tempGrants) {
+        tempGrants.removeIf(w -> w.isSame(wish));
     }
 
     private boolean isGrantable(CustomerWish wish, List<CustomerWish> tempGrant) {

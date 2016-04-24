@@ -38,6 +38,10 @@ public class CustomerWish {
         this.visited = false;
     }
 
+    public String productAsString() {
+        return product.toString();
+    }
+
     public void clearGrant() {
         this.granted = false;
     }
