@@ -1,10 +1,15 @@
 package com.paintshop;
 
+import com.google.common.collect.ImmutableList;
 import com.paintshop.model.ColorFinish;
+import com.paintshop.model.Customer;
+import com.paintshop.model.CustomerWish;
 import com.paintshop.model.Product;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 public class CatalogBuilderTest {
 
@@ -26,6 +31,16 @@ public class CatalogBuilderTest {
 
     @Test
     public void testIsCustomerSatisfied() throws Exception {
-
+        List<Product> catalog = ImmutableList.of(
+                new Product(1, ColorFinish.GLOSSY),
+                new Product(2, ColorFinish.GLOSSY),
+                new Product(3, ColorFinish.MATTE)
+        );
+        Customer customer = Customer.makeCustomer(ImmutableList.of(CustomerWish.makeCustomerWish(1, ColorFinish.GLOSSY)));
+        assertTrue("Customer is not satisfied with the catalog", BUILDER.isCustomerSatisfied(catalog, customer));
+        customer = Customer.makeCustomer(ImmutableList.of(CustomerWish.makeCustomerWish(1, ColorFinish.MATTE)));
+        assertFalse("Customer is satisfied with the catalog", BUILDER.isCustomerSatisfied(catalog, customer));
+        customer = Customer.makeCustomer(ImmutableList.of(CustomerWish.makeCustomerWish(4, ColorFinish.MATTE)));
+        assertFalse("Customer is satisfied with the catalog", BUILDER.isCustomerSatisfied(catalog, customer));
     }
 }
