@@ -21,7 +21,7 @@ public class TestCase {
         return 1 + 1 + customers.size();
     }
 
-    private void createProducts(int productCount) {
+    protected void createProducts(int productCount) {
         // Product indexing starts from 1
         for (int i = 1; i <= productCount ; i++) {
             products.add(new Product(i));
