@@ -34,7 +34,7 @@ public class InputReader {
     public List<TestCase> getTestCases() throws IOException {
         List<TestCase> allTests = new ArrayList<>();
         List<String> lines = Files.lines(Paths.get(inputFileName)).collect(Collectors.toList());
-        int testCaseCount = extractIntegerFromLine(lines.get(0));
+        int testCaseCount = extractInt(lines.get(0));
         if (testCaseCount > 0) {
             while (allTests.size() < testCaseCount) {
                 int startingLine = 1 + allTests.stream().mapToInt(x -> x.linesConsumed()).sum();
@@ -46,35 +46,33 @@ public class InputReader {
         return allTests;
     }
 
-    private TestCase extractTestCase(List<String> lines, int startingLine) throws IOException {
-        int productCount = extractIntegerFromLine(lines.get(startingLine));
-        int customerCount = extractIntegerFromLine(lines.get(startingLine + 1));
+    protected TestCase extractTestCase(List<String> lines, int startingLine) throws IOException {
+        int productCount = extractInt(lines.get(startingLine));
+        int customerCount = extractInt(lines.get(startingLine + 1));
         List<Customer> customers = lines.subList(startingLine + 2, startingLine + 2 + customerCount).stream()
                 .map(l -> toCustomer(l)).collect(Collectors.toList());
-        if (customers.size() != customerCount) {
-            throw new InvalidInputException("Customer count and count of customers do not match");
-        }
         return TestCase.makeWithProductCountAndCustomers(productCount, customers);
     }
 
     protected Customer toCustomer(String line) {
+        List<CustomerWish> wishes = new ArrayList<>();
         List<Integer> numbers = Arrays.asList(line.split(" ")).stream()
                 .map(Integer::valueOf)
                 .collect(Collectors.toList());
-        List<CustomerWish> wishes = new ArrayList<>();
         int wishCount = numbers.get(0);
-        for (int i = 1; i <= wishCount * 2; i += 2) {
-            int colorCode = numbers.get(i);
-            ColorFinish finish = ColorFinish.of(numbers.get(i + 1));
-            wishes.add(CustomerWish.makeCustomerWish(colorCode, finish));
-        }
-        if (wishes.size() != wishCount) {
-            throw new InvalidInputException("Customer wish count and count of wishes do not match");
+        if (numbers.size() == (wishCount * 2) + 1) {
+            for (int i = 1; i <= wishCount * 2; i += 2) {
+                int colorCode = numbers.get(i);
+                ColorFinish finish = ColorFinish.of(numbers.get(i + 1));
+                wishes.add(CustomerWish.makeCustomerWish(colorCode, finish));
+            }
+        } else {
+            throw new InvalidInputException("Customer wish count does not match count of customer wishes for line "+ line);
         }
         return Customer.makeCustomer(wishes);
     }
 
-    private Integer extractIntegerFromLine(String line) {
+    private Integer extractInt(String line) {
         return Integer.valueOf(line.trim());
     }
 
