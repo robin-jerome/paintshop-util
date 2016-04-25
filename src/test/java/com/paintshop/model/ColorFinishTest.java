@@ -14,7 +14,7 @@ public class ColorFinishTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void enumOfIllegalCodeThrowsException() throws Exception {
-        ColorFinish.of(0);
+        ColorFinish.of(3);
     }
 
 }
